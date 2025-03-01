@@ -25,6 +25,7 @@ export default function Home() {
     } else {
       setError(null);
       setSelectedFile(file);
+      console.log(selectedFile?.type)
     }
   };
 
@@ -36,30 +37,32 @@ export default function Home() {
     
     const formData = new FormData();
     formData.append("file", selectedFile);
+console.log(formData)
+    try {
+      const response = await fetch("http://localhost:5000/predict", {  
+        method: "POST",
+        body: formData,
+      });
 
-    // try {
-    //   const response = await fetch("http://localhost:5000/analyze", {  // Replace with your API URL
-    //     method: "POST",
-    //     body: formData,
-    //   });
+      if (!response.ok) {
+        throw new Error("Failed to analyze the file.");
+      }
 
-    //   if (!response.ok) {
-    //     throw new Error("Failed to analyze the file.");
-    //   }
-
-    //   const data = await response.json();
-    //   setResult(data.result); // Assuming the API returns { "result": "Real" or "Fake" }
-    // } catch (err) {
-    //   setError("Error analyzing file. Please try again.");
-    // } finally {
-    //   setIsLoading(false);
-    // }
+      const data = await response.json();
+      console.log(data);
+      setResult(data.prediction); 
+    } catch (err) {
+      console.log(err);
+      setError("Error analyzing file. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
       <h1 className="text-4xl font-bold text-gray-900 mb-6">
-        Deepfake Detector
+        Deepfake Detector!!
       </h1>
 
       <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-lg">
@@ -103,9 +106,10 @@ export default function Home() {
               />
             ) : selectedFile.type.startsWith("video/") ? (
               <video
-                src={URL.createObjectURL(selectedFile)}
+                src={URL.createObjectURL(new Blob([selectedFile],{type:selectedFile.type}))}
                 controls
                 className="w-[300px] h-auto rounded-lg"
+                onError={(e) => console.error("Video failed to load:", e)}
               />
             ) : null}
 
