@@ -11,7 +11,7 @@ from model import DeepfakeDetector
 
 
 # Define constants
-MODEL_PATH = "models/resnet_lstm_model_version_4.pth"
+MODEL_PATH = "models/deepfake_detector_v5.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}
@@ -40,10 +40,6 @@ model = load_model()
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((128, 128)),
-    transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomRotation(degrees=10),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-    transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.15),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
@@ -109,15 +105,15 @@ def predict():
         try:
             with torch.no_grad():
                 output = model(frames)
-                probabilities = torch.nn.functional.softmax(output, dim=1)
-                prediction = torch.argmax(probabilities, dim=1).item()
-                confidence = probabilities[0][prediction].item()
-                print(probabilities)
+                # probabilities = torch.nn.functional.softmax(output, dim=1)
+                prediction = torch.argmax(output, dim=1).item()
+                # confidence = probabilities[0][prediction].item()
+                # print(probabilities)
                 print(prediction)
             os.remove(file_path)  # Clean up uploaded file
             return jsonify({
                 "prediction": "Fake" if prediction == 1 else "Real",
-                "confidence": round(confidence, 4)
+                # "confidence": round(confidence, 4)
             })
 
         except Exception as e:
