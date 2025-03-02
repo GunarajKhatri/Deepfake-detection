@@ -13,40 +13,40 @@ class DeepfakeDetector(nn.Module):
         resnet = models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
         self.resnet = nn.Sequential(*list(resnet.children())[:-1])  # Remove FC layer
 
-        # Unfreeze ResNet for Fine-Tuning
-        for param in self.resnet.parameters():
-            param.requires_grad = True  # Enable gradient updates
+        # Freeze Early Layers for Better Transfer Learning
+        for param in list(self.resnet.children())[:6]:
+            for p in param.parameters():
+                p.requires_grad = False
 
         # LSTM for Temporal Processing
         self.lstm = nn.LSTM(input_size=512, hidden_size=hidden_dim, num_layers=num_layers,
                             batch_first=True, bidirectional=True, dropout=dropout)
 
-        self.final_dropout = nn.Dropout(p=dropout)
+        self.final_dropout = nn.Dropout(p=dropout)  # Dropout only in training mode
 
         # Fully Connected Layer
         self.fc = nn.Linear(hidden_dim * 2, num_classes)
 
-        # Resize transformation (Applied before entering the model)
-        self.resize = transforms.Resize((224, 224))
-    
+
     def forward(self, x):
-        B, T, C, H, W = x.shape
-        
-        # Reshape for ResNet Processing
+        B, T, C, H, W = x.shape  # (Batch, Time, Channels, Height, Width)
+
+        # Flatten batch & time
         x = x.view(B * T, C, H, W)
-        x = self.resize(x)
-        
-        # Feature Extraction
-        with torch.no_grad():
-            x = self.resnet(x)
-        x = x.view(B, T, 512)
-        
+
+        # Feature Extraction via ResNet
+        x = self.resnet(x)  # Output: (B*T, 512, 1, 1)
+        x = x.view(B, T, 512)  # Reshape for LSTM
+
         # LSTM Processing
         lstm_out, _ = self.lstm(x)
-        
-        # Extract last frame's LSTM output
-        lstm_out = self.final_dropout(lstm_out)
-        last_out = lstm_out[:, -1, :]
+
+        # Apply Dropout Only in Training Mode
+        if self.training:
+            lstm_out = self.final_dropout(lstm_out)
+
+        # Use Mean Pooling Instead of Last Frame
+        lstm_out = torch.mean(lstm_out, dim=1)
         
         # Classification (Raw logits, no Softmax)
-        return self.fc(last_out)
+        return self.fc(lstm_out)
