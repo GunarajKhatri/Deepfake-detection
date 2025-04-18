@@ -21,7 +21,12 @@ cd project-directory
 pip install -r requirements.txt
 ```
 
-### 3. Run the backend server
+### 3. Install  trained model
+```sh
+python3 download_model.py
+```
+
+### 4. Run the backend server
 ```sh
 python3 app.py
 ```
