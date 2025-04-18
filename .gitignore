@@ -1,2 +1,5 @@
 test_video.py
 test_video.mp4
+models/*.pth
+notebook/
+uploads/
