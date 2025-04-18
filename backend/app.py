@@ -7,14 +7,19 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from model import DeepfakeDetector  
-
+from backend.model import DeepfakeDetector
+from backend.download_model import download_model
 
 # Define constants
-MODEL_PATH = "models/deepfake_detector_v5.pth"
+MODEL_PATH = "backend/models/deepfake_detector_v5.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "backend/uploads"
 ALLOWED_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}
+
+# Ensure model exists else download 
+if not os.path.exists(MODEL_PATH):
+    print("Model not found locally. Downloading...")
+    download_model()
 
 # Ensure the upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -122,5 +127,5 @@ def predict():
 
     return jsonify({"error": "Invalid file format"}), 400
 
-if __name__ == "__main__":
+def run_app():
     app.run(host="0.0.0.0", port=5000, debug=True)
